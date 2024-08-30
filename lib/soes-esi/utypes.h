@@ -13,13 +13,16 @@ typedef struct
 
    /* Inputs */
 
-   uint8_t Key1;
-   uint8_t Key2;
-   uint32_t Counter;
+   float EncPos;
+   float EncFrequency;
+   uint32_t DiffT;
+   uint32_t IndexByte;
+   uint32_t IndexStatus;
 
    /* Outputs */
 
-   uint8_t LedIn;
+   int32_t EncPosScale;
+   uint32_t IndexLatchEnable;
 
 } _Objects;
 
