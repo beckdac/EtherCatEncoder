@@ -42,31 +42,11 @@ static esc_cfg_t config = {
     .esc_check_dc_handler = NULL,
 };
 
-#if 0
-void esc_pdi_debug()
-{
-    // Read few core CSR registers to verify PDI is working
-    uint8_t value = 0;
-    //printf("\r\n[ESC debug] ");
-        
-    ESC_read(0x0000, (void*) &value, sizeof(uint8_t));
-    //printf("Type [0x0000]: %s, ", STR5(value));
-    ESC_read(0x0001, (void*) &value, sizeof(uint8_t));
-    //printf("Revision [0x0001]: %s, ", STR5(value));
-    ESC_read(0x0004, (void*) &value, sizeof(uint8_t));
-    //printf("FMMU count [0x0004]: %s, ", STR5(value));
-    ESC_read(0x0005, (void*) &value, sizeof(uint8_t));
-    //printf("Sync Managers count [0x0005]: %s, ", STR5(value));
-    ESC_read(0x0006, (void*) &value, sizeof(uint8_t));
-    //printf("RAM size [0x0006]: %s, \r\n", STR5(value));
-    
-    //printf("\r\n");
-}
-#endif
-
 //---- user application ------------------------------------------------------------------------------
 
 void indexPulse(void);
+void encoderAPulse(void);
+void encoderBPulse(void);
 double posScaleRes = 1.0;
 uint32_t curPosScale = 1;
 uint8_t oldLatchCEnable = 0;
@@ -99,6 +79,21 @@ int64_t unwrap_encoder(uint16_t in, int64_t *prev) {
 }
 
 void indexPulse(void) {
+    if (counterReset) {
+        //TIM2->CNT = 0;
+        indexPulseDetected = 1;
+        Pos.clear();
+        TDelta.clear();
+        counterReset = 0;
+    }
+}
+
+void encoderAPulse(void){
+
+}
+
+void encoderBPulse(void){
+
 }
 
 void cb_get_inputs() {
@@ -145,7 +140,53 @@ void cb_set_outputs() {
     }
 }
 
+
+#define EXTI_NUMS   (16)
+
+typedef struct {
+    IRQn_Type irqNum;
+    void (*callback)(void);
+} extiConf_t;
+
+extiConf_t gpio_exti_infor[EXTI_NUMS] = {
+    {EXTI0_IRQn,      NULL},
+    {EXTI1_IRQn,      NULL},
+    {EXTI2_IRQn,      NULL},
+    {EXTI3_IRQn,      NULL},
+    {EXTI4_IRQn,      NULL},
+    {EXTI5_9_IRQn,    NULL},
+    {EXTI5_9_IRQn,    NULL},
+    {EXTI5_9_IRQn,    NULL},
+    {EXTI5_9_IRQn,    NULL},
+    {EXTI5_9_IRQn,    NULL},
+    {EXTI10_15_IRQn,  NULL},
+    {EXTI10_15_IRQn,  NULL},
+    {EXTI10_15_IRQn,  NULL},
+    {EXTI10_15_IRQn,  NULL},
+    {EXTI10_15_IRQn,  NULL},
+    {EXTI10_15_IRQn,  NULL}
+};
+
+void gpio_interrupt_enable(uint32_t portNum, uint32_t pinNum, void (*callback)(void), exti_trig_type_enum mode) {
+    exti_line_enum exti_line = (exti_line_enum)BIT(pinNum);
+    exti_mode_enum exti_mode = EXTI_INTERRUPT;
+    exti_trig_type_enum  trig_type = mode;
+    gpio_exti_infor[pinNum].callback = callback;
+
+#define EXTI_IRQ_PRIO   3
+#define EXTI_IRQ_SUBPRIO    0
+
+    nvic_irq_enable(gpio_exti_infor[pinNum].irqNum, EXTI_IRQ_PRIO, EXTI_IRQ_SUBPRIO);
+    // call the below above so we can be sure we are using the right defines, not these
+    //syscfg_exti_line_config((uint8_t)portNum, (uint8_t)pinNum);
+
+    exti_init(exti_line, exti_mode, trig_type);
+    exti_interrupt_flag_clear(exti_line);
+    exti_interrupt_enable(exti_line);
+}
+
 void gpio_init(void) {
+	rcu_periph_clock_enable(RCU_GPIOA);
 	rcu_periph_clock_enable(RCU_GPIOB);
 	rcu_periph_clock_enable(RCU_GPIOC);
 	rcu_periph_clock_enable(RCU_GPIOE);
@@ -161,21 +202,83 @@ void gpio_init(void) {
 
 	gpio_mode_set(GPIOE, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6);
 	gpio_output_options_set(GPIOE, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6);
+
+    // interupts for the encoders on the switches
+    exti_deinit();
+    syscfg_exti_line_config(EXTI_SOURCE_GPIOE, EXTI_SOURCE_PIN1);
+    gpio_interrupt_enable(GPIOE, GPIO_PIN_1, &indexPulse, EXTI_TRIG_RISING);
+    syscfg_exti_line_config(EXTI_SOURCE_GPIOE, EXTI_SOURCE_PIN0);
+    gpio_interrupt_enable(GPIOE, GPIO_PIN_0, &encoderAPulse, EXTI_TRIG_RISING);
+    syscfg_exti_line_config(EXTI_SOURCE_GPIOB, EXTI_SOURCE_PIN9);
+    gpio_interrupt_enable(GPIOB, GPIO_PIN_9, &encoderBPulse, EXTI_TRIG_RISING);
+    //syscfg_exti_line_config(EXTI_SOURCE_GPIOB, EXTI_SOURCE_PIN6);
+    //syscfg_exti_line_config(EXTI_SOURCE_GPIOB, EXTI_SOURCE_PIN8);
+    //syscfg_exti_line_config(EXTI_SOURCE_GPIOB, EXTI_SOURCE_PIN9);
+    //syscfg_exti_line_config(EXTI_SOURCE_GPIOG, EXTI_SOURCE_PIN14);
+    //syscfg_exti_line_config(EXTI_SOURCE_GPIOG, EXTI_SOURCE_PIN15);
+    
 }
+
+void exti_callbackHandler(uint32_t pinNum)
+{
+    exti_line_enum linex = (exti_line_enum)BIT(pinNum);
+    if (exti_interrupt_flag_get(linex) != RESET) {
+        exti_interrupt_flag_clear(linex);
+        if (gpio_exti_infor[pinNum].callback != NULL) {
+            gpio_exti_infor[pinNum].callback();
+        }
+    }
+}
+
+void EXTI0_IRQHandler(void){
+    exti_callbackHandler(0);
+}
+
+void EXTI1_IRQHandler(void)
+{
+    exti_callbackHandler(1);
+}
+
+void EXTI2_IRQHandler(void)
+{
+    exti_callbackHandler(2);
+}
+
+void EXTI3_IRQHandler(void)
+{
+    exti_callbackHandler(3);
+}
+
+void EXTI4_IRQHandler(void)
+{
+    exti_callbackHandler(4);
+}
+
+void EXTI5_9_IRQHandler(void)
+{
+    uint32_t i;
+    for (i = 5; i < 10; i++) {
+        exti_callbackHandler(i);
+    }
+
+}
+
+void EXTI10_15_IRQHandler(void)
+{
+    uint32_t i;
+    for (i = 10; i < 16; i++) {
+        exti_callbackHandler(i);
+    }
+}
+
 
 int main(void) {
 	systick_config();
 	gpio_init();
 	gpio_bit_set(GPIOC, GPIO_PIN_15);
 
-	//APP_USART_Init();
-	//printf("\r\n[ESC Setup] %s \r\n", "Started");
-	//
 	ecat_slv_init(&config);
 	gpio_bit_set(GPIOC, GPIO_PIN_14);
-	//printf("\r\n[ESC Setup] Done, ready \r\n\n");
-	//
-//	esc_pdi_debug();
 
     int i = 0;
 	while (1) {
