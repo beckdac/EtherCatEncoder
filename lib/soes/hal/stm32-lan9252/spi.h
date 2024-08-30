@@ -10,6 +10,7 @@
 #define DUMMY_BYTE 0xFF
 #define tout 5000
 
+void spi_gpio_setup(void);
 void spi_setup(void);
 void spi_select (int8_t board);
 void spi_unselect (int8_t board);

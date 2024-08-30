@@ -78,13 +78,49 @@ void cb_set_outputs()
 	}
 }
 
+void gpio_init(void) {
+	rcu_periph_clock_enable(RCU_GPIOB);
+	rcu_periph_clock_enable(RCU_GPIOC);
+	rcu_periph_clock_enable(RCU_GPIOE);
+	rcu_periph_clock_enable(RCU_GPIOG);
+
+	// the switches on the GD32 board
+	gpio_mode_set(GPIOE, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_0 | GPIO_PIN_1);
+	gpio_mode_set(GPIOB, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_8 | GPIO_PIN_9);
+	gpio_mode_set(GPIOG, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_14 | GPIO_PIN_15);
+	// the LEDs on the GD32 board
+	gpio_mode_set(GPIOC, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
+	gpio_output_options_set(GPIOC, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
+
+	gpio_mode_set(GPIOE, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6);
+	gpio_output_options_set(GPIOE, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6);
+}
+
+void systick_init(void)
+{
+    // Setup systick timer for 1000Hz interrupts.
+    if (SysTick_Config(SystemCoreClock / 1000U)){
+        // infinite loop on error
+        while (1) {
+        }
+    }
+    // set the systick handler priority
+    NVIC_SetPriority(SysTick_IRQn, 0x00U);
+}
+
 
 int main(void) {
-	SysTick_Config(SystemCoreClock / 1000);
+	systick_init();
+	gpio_init();
+	gpio_bit_set(GPIOC, GPIO_PIN_14);
+	gpio_bit_set(GPIOE, GPIO_PIN_6);
+
 	//APP_USART_Init();
 	//printf("\r\n[ESC Setup] %s \r\n", "Started");
+	//
 	ecat_slv_init(&config);
 	//printf("\r\n[ESC Setup] Done, ready \r\n\n");
+	//
 	esc_pdi_debug();
 
 	while (1) {

@@ -426,6 +426,7 @@ void ESC_init (const esc_cfg_t * config)
 {
    uint32_t value;
 
+   spi_gpio_setup();
    spi_setup();
 
    /* Reset the ecat core here due to evb-lan9252-digio not having any GPIO
