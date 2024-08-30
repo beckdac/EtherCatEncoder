@@ -20,6 +20,8 @@ void spi_gpio_setup(void) {
 void spi_setup(void) {
 	spi_parameter_struct spi_init_struct;
 
+    spi_i2s_deinit(SPI0);
+
 	rcu_periph_clock_enable(RCU_SPI0);
 	
 	spi_init_struct.trans_mode           = SPI_TRANSMODE_FULLDUPLEX;
@@ -34,7 +36,6 @@ void spi_setup(void) {
 	
 	spi_enable(SPI0);
 
-    //spi_i2s_deinit(SPI0);
 
     //spi_crc_polynomial_set(SPI0, 7);
 
