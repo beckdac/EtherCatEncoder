@@ -30,7 +30,7 @@ void spi_setup(void) {
 	spi_init_struct.clock_polarity_phase = SPI_CK_PL_LOW_PH_1EDGE;
 	spi_init_struct.nss                  = SPI_NSS_SOFT;
 	// note 16 prescale instead of 2
-	spi_init_struct.prescale             = SPI_PSC_16;
+	spi_init_struct.prescale             = SPI_PSC_128;
 	spi_init_struct.endian               = SPI_ENDIAN_MSB;
 	spi_init(SPI0, &spi_init_struct);
 	
@@ -42,6 +42,7 @@ void spi_setup(void) {
     //spi_enable(SPI0);
 }
 
+// the chip is active low for CS
 void spi_select (int8_t board) {
     gpio_bit_reset(GPIOA, GPIO_PIN_4);
 }

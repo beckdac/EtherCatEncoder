@@ -14,7 +14,7 @@
 #include "spi.h"
 #include <string.h>
 
-
+#include "systick.h"
 
 #define O_RDWR 1
 
@@ -421,6 +421,15 @@ uint8_t ESC_IsLAN9252()
           && revision >= 1;
 }
 
+void delay(uint32_t ms)
+{
+    if (ms != 0) {
+        uint32_t start = getCurrentMillis();
+        do {
+            __NOP();
+        } while (getCurrentMillis() - start < ms);
+    }
+}
 
 void ESC_init (const esc_cfg_t * config)
 {
@@ -429,12 +438,16 @@ void ESC_init (const esc_cfg_t * config)
    spi_gpio_setup();
    spi_setup();
 
+   spi_unselect (lan9252);
+   delay(100);
+
    /* Reset the ecat core here due to evb-lan9252-digio not having any GPIO
     * for that purpose.
     */
    lan9252_write_32(ESC_RESET_CTRL_REG, ESC_DIGITAL_RST);
    do
    {
+      delay(100);
       value = lan9252_read_32(ESC_RESET_CTRL_REG);
    } 
    while(value & ESC_RESET_CTRL_RST);

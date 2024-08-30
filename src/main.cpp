@@ -8,11 +8,11 @@
 extern "C" {
 #include "ecat_slv.h"
 #include "utypes.h"
+#include "systick.h"
 }
 
-#include <CircularBuffer.h>
+#include <CircularBuffer.hpp>
 
-#include "systick.h"
 
 /* CANopen Object Dictionary */
 _Objects    Obj;
@@ -98,6 +98,9 @@ int64_t unwrap_encoder(uint16_t in, int64_t *prev) {
     return unwrapped + HALF_PERIOD; // remove the shift we applied at the beginning, and return
 }
 
+void indexPulse(void) {
+}
+
 void cb_get_inputs() {
     Obj.IndexStatus = 0;
     if (indexPulseDetected) {
@@ -125,7 +128,7 @@ void cb_get_inputs() {
       diffT = 1.0e-9 * (TDelta.last() - TDelta.first()); // Time is in nanoseconds
       diffPos = std::fabs(Pos.last() - Pos.first());
    }
-      Obj.EncFrequency = diffT != 0 ? diffPos / diffT : 0.0; // Revolutions per second
+   Obj.EncFrequency = diffT != 0 ? diffPos / diffT : 0.0; // Revolutions per second
 
    Obj.IndexByte = gpio_input_bit_get(GPIOE, GPIO_PIN_1);
 }
@@ -163,18 +166,23 @@ void gpio_init(void) {
 int main(void) {
 	systick_config();
 	gpio_init();
-	gpio_bit_set(GPIOC, GPIO_PIN_14);
-	gpio_bit_set(GPIOE, GPIO_PIN_6);
+	gpio_bit_set(GPIOC, GPIO_PIN_15);
 
 	//APP_USART_Init();
 	//printf("\r\n[ESC Setup] %s \r\n", "Started");
 	//
 	ecat_slv_init(&config);
+	gpio_bit_set(GPIOC, GPIO_PIN_14);
 	//printf("\r\n[ESC Setup] Done, ready \r\n\n");
 	//
 //	esc_pdi_debug();
 
+    int i = 0;
 	while (1) {
+        if (i++ % 2 == 1)
+	        gpio_bit_reset(GPIOC, GPIO_PIN_13);
+        else
+	        gpio_bit_set(GPIOC, GPIO_PIN_13);
         ESCvar.PrevTime = ESCvar.Time;
 		ecat_slv();
 		if (ESCvar.ALerror) {
@@ -182,3 +190,4 @@ int main(void) {
 		}
 	}
 }
+
