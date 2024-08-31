@@ -140,50 +140,7 @@ void cb_set_outputs() {
     }
 }
 
-
-#define EXTI_NUMS   (16)
-
-typedef struct {
-    IRQn_Type irqNum;
-    void (*callback)(void);
-} extiConf_t;
-
-extiConf_t gpio_exti_infor[EXTI_NUMS] = {
-    {EXTI0_IRQn,      NULL},
-    {EXTI1_IRQn,      NULL},
-    {EXTI2_IRQn,      NULL},
-    {EXTI3_IRQn,      NULL},
-    {EXTI4_IRQn,      NULL},
-    {EXTI5_9_IRQn,    NULL},
-    {EXTI5_9_IRQn,    NULL},
-    {EXTI5_9_IRQn,    NULL},
-    {EXTI5_9_IRQn,    NULL},
-    {EXTI5_9_IRQn,    NULL},
-    {EXTI10_15_IRQn,  NULL},
-    {EXTI10_15_IRQn,  NULL},
-    {EXTI10_15_IRQn,  NULL},
-    {EXTI10_15_IRQn,  NULL},
-    {EXTI10_15_IRQn,  NULL},
-    {EXTI10_15_IRQn,  NULL}
-};
-
-void gpio_interrupt_enable(uint32_t portNum, uint32_t pinNum, void (*callback)(void), exti_trig_type_enum mode) {
-    exti_line_enum exti_line = (exti_line_enum)BIT(pinNum);
-    exti_mode_enum exti_mode = EXTI_INTERRUPT;
-    exti_trig_type_enum  trig_type = mode;
-    gpio_exti_infor[pinNum].callback = callback;
-
-#define EXTI_IRQ_PRIO   3
-#define EXTI_IRQ_SUBPRIO    0
-
-    nvic_irq_enable(gpio_exti_infor[pinNum].irqNum, EXTI_IRQ_PRIO, EXTI_IRQ_SUBPRIO);
-    // call the below above so we can be sure we are using the right defines, not these
-    //syscfg_exti_line_config((uint8_t)portNum, (uint8_t)pinNum);
-
-    exti_init(exti_line, exti_mode, trig_type);
-    exti_interrupt_flag_clear(exti_line);
-    exti_interrupt_enable(exti_line);
-}
+//    exti_interrupt_enable(exti_line);
 
 void gpio_init(void) {
 	rcu_periph_clock_enable(RCU_GPIOA);
@@ -193,55 +150,55 @@ void gpio_init(void) {
 	rcu_periph_clock_enable(RCU_GPIOG);
 
 	// the switches on the GD32 board
-	gpio_mode_set(GPIOE, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_0 | GPIO_PIN_1);
-	gpio_mode_set(GPIOB, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_8 | GPIO_PIN_9);
-	gpio_mode_set(GPIOG, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_14 | GPIO_PIN_15);
+	//gpio_mode_set(GPIOE, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_0 | GPIO_PIN_1);
+	//gpio_mode_set(GPIOB, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_8 | GPIO_PIN_9);
+	//gpio_mode_set(GPIOG, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_14 | GPIO_PIN_15);
 	// the LEDs on the GD32 board
 	gpio_mode_set(GPIOC, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
 	gpio_output_options_set(GPIOC, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
 	gpio_mode_set(GPIOE, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6);
 	gpio_output_options_set(GPIOE, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6);
+
+
+    rcu_periph_clock_enable(RCU_SYSCFG);
     // LAN9252 IRQ pin will have EXTI0
     gpio_mode_set(GPIOC, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_0);
-    rcu_periph_clock_enable( RCU_SYSCFG );
     nvic_irq_enable( EXTI0_IRQn, 0U, 0U);
     syscfg_exti_line_config(EXTI_SOURCE_GPIOC, EXTI_SOURCE_PIN0);
     exti_init(EXTI_0, EXTI_INTERRUPT, EXTI_TRIG_FALLING);
     exti_interrupt_flag_clear(EXTI_0);
+    exti_interrupt_enable(EXTI_0);
     // LAN9252 SYNC0 pin will have EXTI3
-    rcu_periph_clock_enable(RCU_GPIOC);
-    rcu_periph_clock_enable(RCU_SYSCFG);
     gpio_mode_set(GPIOC, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_3);
     nvic_irq_enable(EXTI3_IRQn, 1U, 1U);
     syscfg_exti_line_config(EXTI_SOURCE_GPIOC, EXTI_SOURCE_PIN3);
     exti_init(EXTI_3, EXTI_INTERRUPT, EXTI_TRIG_FALLING);
     exti_interrupt_flag_clear(EXTI_3);
+    exti_interrupt_enable(EXTI_3);
     // LAN9252 SYNC1 pin will have EXTI1
-    rcu_periph_clock_enable(RCU_GPIOC);
     gpio_mode_set(GPIOC, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_1);
-    rcu_periph_clock_enable( RCU_SYSCFG );
     nvic_irq_enable(EXTI1_IRQn, 1U, 2U);
     syscfg_exti_line_config(EXTI_SOURCE_GPIOC, EXTI_SOURCE_PIN1);
     exti_init(EXTI_1, EXTI_INTERRUPT, EXTI_TRIG_FALLING);
     exti_interrupt_flag_clear(EXTI_1);
+    exti_interrupt_enable(EXTI_1);
 
-    // the index pulse pin will have EXTI
-
-    // interupts for the encoders on the switches
-    exti_deinit();
-    syscfg_exti_line_config(EXTI_SOURCE_GPIOE, EXTI_SOURCE_PIN1);
-    gpio_interrupt_enable(GPIOE, GPIO_PIN_1, &indexPulse, EXTI_TRIG_RISING);
-    syscfg_exti_line_config(EXTI_SOURCE_GPIOE, EXTI_SOURCE_PIN0);
-    gpio_interrupt_enable(GPIOE, GPIO_PIN_0, &encoderAPulse, EXTI_TRIG_RISING);
+    // the encoder will live on EXTI9, 8 and 6 which all share an IRQ
+	gpio_mode_set(GPIOB, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_6 | GPIO_PIN_8 | GPIO_PIN_9);
     syscfg_exti_line_config(EXTI_SOURCE_GPIOB, EXTI_SOURCE_PIN9);
-    gpio_interrupt_enable(GPIOB, GPIO_PIN_9, &encoderBPulse, EXTI_TRIG_RISING);
-
-    //syscfg_exti_line_config(EXTI_SOURCE_GPIOB, EXTI_SOURCE_PIN6);
     //syscfg_exti_line_config(EXTI_SOURCE_GPIOB, EXTI_SOURCE_PIN8);
-    //syscfg_exti_line_config(EXTI_SOURCE_GPIOB, EXTI_SOURCE_PIN9);
-    //syscfg_exti_line_config(EXTI_SOURCE_GPIOG, EXTI_SOURCE_PIN14);
-    //syscfg_exti_line_config(EXTI_SOURCE_GPIOG, EXTI_SOURCE_PIN15);
-    
+    //syscfg_exti_line_config(EXTI_SOURCE_GPIOB, EXTI_SOURCE_PIN6);
+    exti_interrupt_flag_clear(EXTI_9);
+    //exti_interrupt_flag_clear(EXTI_8);
+    //exti_interrupt_flag_clear(EXTI_6);
+    exti_init(EXTI_9, EXTI_INTERRUPT, EXTI_TRIG_RISING);
+    //exti_init(EXTI_8, EXTI_INTERRUPT, EXTI_TRIG_RISING);
+    //exti_init(EXTI_6, EXTI_INTERRUPT, EXTI_TRIG_RISING);
+    exti_interrupt_enable(EXTI_9);
+    //exti_interrupt_enable(EXTI_8);
+    //exti_interrupt_enable(EXTI_6);
+	NVIC_ClearPendingIRQ(EXTI5_9_IRQn);
+    nvic_irq_enable(EXTI5_9_IRQn, 2U, 0U);
 }
 
 void timer2_init(uint8_t period) {
@@ -265,17 +222,6 @@ void timer2_init(uint8_t period) {
     timer_enable(TIMER2);
 }
 
-void exti_callbackHandler(uint32_t pinNum)
-{
-    exti_line_enum linex = (exti_line_enum)BIT(pinNum);
-    if (exti_interrupt_flag_get(linex) != RESET) {
-        exti_interrupt_flag_clear(linex);
-        if (gpio_exti_infor[pinNum].callback != NULL) {
-            gpio_exti_infor[pinNum].callback();
-        }
-    }
-}
-
 // LAN9252 IRQ
 void EXTI0_IRQHandler(void){
     //PDI_Isr();
@@ -283,8 +229,7 @@ void EXTI0_IRQHandler(void){
 }
 
 // LAN9252 SYNC1
-void EXTI1_IRQHandler(void)
-{
+void EXTI1_IRQHandler(void) {
     NVIC_DisableIRQ(EXTI0_IRQn);
     //Sync1_Isr();
     exti_interrupt_flag_clear(EXTI_1);
@@ -300,6 +245,7 @@ void EXTI3_IRQHandler(void) {
 // index Pulse, encoder A pulse, and encoder B pulse
 // all sit on this ISR
 void EXTI5_9_IRQHandler(void) {
+    gpio_bit_toggle(GPIOE, GPIO_PIN_3);
     // Switch 3 (GPIO 9 on Port B) is index
     if (exti_interrupt_flag_get(EXTI_9) != RESET) {
         indexPulse(); 
@@ -328,12 +274,11 @@ int main(void) {
 	ecat_slv_init(&config);
     gpio_bit_set(GPIOC, GPIO_PIN_13);
 
-    int i = 0;
+    uint32_t i = 0;
 	while (1) {
-        if (++i % 2 == 0)
-	        gpio_bit_reset(GPIOE, GPIO_PIN_6); 
-        else
-	        gpio_bit_set(GPIOE, GPIO_PIN_6);
+        if (++i % 100 == 0) {
+	        gpio_bit_toggle(GPIOE, GPIO_PIN_6); 
+        }
         ESCvar.PrevTime = ESCvar.Time;
 		ecat_slv();
 		if (ESCvar.ALerror) {

@@ -29,17 +29,13 @@ void spi_setup(void) {
 	spi_init_struct.frame_size           = SPI_FRAMESIZE_8BIT;
 	spi_init_struct.clock_polarity_phase = SPI_CK_PL_LOW_PH_1EDGE;
 	spi_init_struct.nss                  = SPI_NSS_SOFT;
-	// note 16 prescale instead of 2
-	spi_init_struct.prescale             = SPI_PSC_128;
+	spi_init_struct.prescale             = SPI_PSC_2;
 	spi_init_struct.endian               = SPI_ENDIAN_MSB;
 	spi_init(SPI0, &spi_init_struct);
 	
 	spi_enable(SPI0);
 
 
-    //spi_crc_polynomial_set(SPI0, 7);
-
-    //spi_enable(SPI0);
 }
 
 // the chip is active low for CS
