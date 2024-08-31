@@ -188,11 +188,10 @@ void gpio_init(void) {
 
     // the encoder will live on portb 6, 8 and 9; 9 and 8 are using timer1
     // and 6 will use an IRQ and needs to be setup here
-//    gpio_mode_set(GPIOB, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_6 | GPIO_PIN_8 | GPIO_PIN_9);
+    gpio_mode_set(GPIOB, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_6 | GPIO_PIN_8 | GPIO_PIN_9);
     // interrupt on 6 for index
-    gpio_mode_set(GPIOB, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_6);
-//	NVIC_ClearPendingIRQ(EXTI5_9_IRQn);
-//    nvic_irq_enable(EXTI5_9_IRQn, 2U, 0U);
+    nvic_irq_enable(EXTI5_9_IRQn, 2U, 0U);
+    syscfg_exti_line_config(EXTI_SOURCE_GPIOB, EXTI_SOURCE_PIN6);
     exti_init(EXTI_6, EXTI_INTERRUPT, EXTI_TRIG_RISING);
     exti_interrupt_flag_clear(EXTI_6);
     exti_interrupt_enable(EXTI_6);
@@ -250,16 +249,6 @@ void EXTI3_IRQHandler(void) {
 // all sit on this ISR
 void EXTI5_9_IRQHandler(void) {
     gpio_bit_toggle(GPIOE, GPIO_PIN_3);
-    // Switch 3 (GPIO 9 on Port B) is index
-    if (exti_interrupt_flag_get(EXTI_9) != RESET) {
-        indexPulse(); 
-        exti_interrupt_flag_clear(EXTI_9);
-    }
-    // Switch 4 (GPIO 8 on Port B) is index
-    if (exti_interrupt_flag_get(EXTI_8) != RESET) {
-        encoderAPulse(); 
-        exti_interrupt_flag_clear(EXTI_8);
-    }
     // Switch 5 (GPIO 6 on Port B) is index
     if (exti_interrupt_flag_get(EXTI_6) != RESET) {
         encoderBPulse(); 
