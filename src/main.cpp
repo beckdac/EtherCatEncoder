@@ -263,8 +263,16 @@ void EXTI5_9_IRQHandler(void) {
     }
 }
 
+void watchdog_config(void) {
+    fwdgt_config(0x0FFF, FWDGT_PSC_DIV32);
+    fwdgt_enable();
+}
+
 int main(void) {
 	systick_config();
+
+    watchdog_config();
+
 	gpio_init();
 	gpio_bit_set(GPIOC, GPIO_PIN_15);
 
@@ -284,6 +292,7 @@ int main(void) {
 		if (ESCvar.ALerror) {
 			//printf("\rAL Error %d\r\n", ESCvar.ALerror);
 		}
+        fwdgt_counter_reload();
 	}
 }
 
