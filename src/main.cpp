@@ -50,7 +50,7 @@ uint32_t curPosScale = 1;
 uint8_t oldLatchCEnable = 0;
 volatile uint8_t indexPulseDetected = 0;
 uint32_t numIndexPulsesDetected = 0;
-volatile uint8_t counterReset = 0;
+volatile uint8_t resetOnIndex = 0;
 uint32_t prevTime = 0, prev2Time = 0;
 int64_t previousEncoderCounterValue = 0;
 
@@ -76,13 +76,23 @@ int64_t unwrap_encoder(uint16_t in, int64_t *prev) {
     return unwrapped + HALF_PERIOD; // remove the shift we applied at the beginning, and return
 }
 
+#if 0
+    // this is to see if we are even hitting the isr and we aren't :()
+    for (int i = 0; i < 1000000; ++i) {
+        gpio_bit_toggle(GPIOE, GPIO_PIN_3);
+        for (int j = 0; j < 1000000; ++j) {
+            fwdgt_counter_reload();
+        }
+    }
+#endif
+
 void indexPulse(void) {
-    if (counterReset) {
+    if (resetOnIndex) {
         timer_counter_value_config(TIMER1, 0);
         indexPulseDetected = 1;
         Pos.clear();
         TDelta.clear();
-        counterReset = 0;
+        resetOnIndex = 0;
     }
 }
 
@@ -119,7 +129,7 @@ void cb_get_inputs() {
 
 void cb_set_outputs() {
     if (Obj.IndexLatchEnable && !oldLatchCEnable) {
-        counterReset = 1;
+        resetOnIndex = 1;
     }
     oldLatchCEnable = Obj.IndexLatchEnable;
     
@@ -238,13 +248,6 @@ void EXTI3_IRQHandler(void) {
 // all sit on this ISR
 extern "C" {
 void EXTI5_9_IRQHandler(void) {
-    // this is to see if we are even hitting the isr and we aren't :()
-    for (int i = 0; i < 1000000; ++i) {
-        gpio_bit_toggle(GPIOE, GPIO_PIN_3);
-        for (int j = 0; j < 1000000; ++j) {
-            fwdgt_counter_reload();
-        }
-    }
     // Switch 5 (GPIO 6 on Port B) is index
     if (exti_interrupt_flag_get(EXTI_6) != RESET) {
         indexPulse(); 
