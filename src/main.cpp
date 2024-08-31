@@ -80,7 +80,7 @@ int64_t unwrap_encoder(uint16_t in, int64_t *prev) {
 
 void indexPulse(void) {
     if (counterReset) {
-        //TIM2->CNT = 0;
+        timer_counter_value_config(TIMER1, 0);
         indexPulseDetected = 1;
         Pos.clear();
         TDelta.clear();
@@ -109,8 +109,7 @@ void cb_get_inputs() {
    prev2Time = prevTime;
    prevTime = now;
 
-   //int64_t pos = unwrap_encoder(TIM2->CNT, &previousEncoderCounterValue);
-   int64_t pos = unwrap_encoder(42, &previousEncoderCounterValue);
+   int64_t pos = unwrap_encoder(timer_counter_read(TIMER1), &previousEncoderCounterValue);
    double curPos = pos * posScaleRes;
    Obj.EncPos = curPos;
 
@@ -161,10 +160,12 @@ void gpio_init(void) {
     gpio_bit_set(GPIOC, GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
     gpio_bit_set(GPIOE, GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6);
 
+
+#if 0
     rcu_periph_clock_enable(RCU_SYSCFG);
     // LAN9252 IRQ pin will have EXTI0
     gpio_mode_set(GPIOC, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_0);
-    nvic_irq_enable( EXTI0_IRQn, 0U, 0U);
+    nvic_irq_enable(EXTI0_IRQn, 0U, 0U);
     syscfg_exti_line_config(EXTI_SOURCE_GPIOC, EXTI_SOURCE_PIN0);
     exti_init(EXTI_0, EXTI_INTERRUPT, EXTI_TRIG_FALLING);
     exti_interrupt_flag_clear(EXTI_0);
@@ -184,43 +185,44 @@ void gpio_init(void) {
     exti_interrupt_flag_clear(EXTI_1);
     exti_interrupt_enable(EXTI_1);
 
-    // the encoder will live on EXTI9, 8 and 6 which all share an IRQ
-	gpio_mode_set(GPIOB, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_6 | GPIO_PIN_8 | GPIO_PIN_9);
-    syscfg_exti_line_config(EXTI_SOURCE_GPIOB, EXTI_SOURCE_PIN9);
-    //syscfg_exti_line_config(EXTI_SOURCE_GPIOB, EXTI_SOURCE_PIN8);
-    //syscfg_exti_line_config(EXTI_SOURCE_GPIOB, EXTI_SOURCE_PIN6);
-    exti_interrupt_flag_clear(EXTI_9);
-    //exti_interrupt_flag_clear(EXTI_8);
-    //exti_interrupt_flag_clear(EXTI_6);
-    exti_init(EXTI_9, EXTI_INTERRUPT, EXTI_TRIG_RISING);
-    //exti_init(EXTI_8, EXTI_INTERRUPT, EXTI_TRIG_RISING);
-    //exti_init(EXTI_6, EXTI_INTERRUPT, EXTI_TRIG_RISING);
-    exti_interrupt_enable(EXTI_9);
-    //exti_interrupt_enable(EXTI_8);
-    //exti_interrupt_enable(EXTI_6);
+    // the encoder will live on portb 6, 8 and 9; 9 and 8 are using timer1
+    // and 6 will use an IRQ and needs to be setup here
+    gpio_mode_set(GPIOB, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_6 | GPIO_PIN_8 | GPIO_PIN_9);
+    // interrupt on 6 for index
+    exti_interrupt_flag_clear(EXTI_6);
+    exti_init(EXTI_6, EXTI_INTERRUPT, EXTI_TRIG_RISING);
+    exti_interrupt_enable(EXTI_6);
 	NVIC_ClearPendingIRQ(EXTI5_9_IRQn);
-    nvic_irq_enable(EXTI5_9_IRQn, 2U, 0U);
+    nvic_irq_enable(EXTI5_9_IRQn, 2U, 3U);
+    // setup timer alternate functions for 8 and 9 (ch0 and ch1 on timer1)
+    // for encoder
+    gpio_af_set(GPIOB, GPIO_AF_1, GPIO_PIN_8 | GPIO_PIN_9);
+#endif
 }
 
-void timer2_init(uint8_t period) {
+// the encoder will sit on the pins b8 and b9 which are
+// switches on the lan9252 gd32 dev board and timer1 ch0 and ch1
+void timer1_init(void) {
     timer_parameter_struct timer_init_param;
 
-    rcu_periph_clock_enable(RCU_TIMER2);
+    timer_deinit(TIMER1);
 
-    timer_deinit(TIMER2);
+    rcu_periph_clock_enable(RCU_TIMER1);
 
-    timer_init_param.prescaler = (42-1);
+    timer_init_param.prescaler = 0;
     timer_init_param.alignedmode = TIMER_COUNTER_EDGE;
     timer_init_param.counterdirection = TIMER_COUNTER_UP;
-    timer_init_param.period = period * 200;
+    timer_init_param.period = 65535;
     timer_init_param.clockdivision = TIMER_CKDIV_DIV1;
     timer_init_param.repetitioncounter = 0;
-    timer_init(TIMER2, &timer_init_param);              /* auto-reload preload enable */
-    timer_auto_reload_shadow_enable(TIMER2);
+    timer_init(TIMER1, &timer_init_param);              /* auto-reload preload enable */
+    timer_auto_reload_shadow_enable(TIMER1);
 
-    timer_interrupt_enable( TIMER2, TIMER_INT_UP );
-    nvic_irq_enable( TIMER2_IRQn, 2, 2 );
-    timer_enable(TIMER2);
+    timer_slave_mode_select(TIMER1, TIMER_ENCODER_MODE2);
+
+    //timer_interrupt_enable(TIMER1, TIMER_INT_UP);
+    //nvic_irq_enable(TIMER1_IRQn, 3, 1);
+    timer_enable(TIMER1);
 }
 
 // LAN9252 IRQ
@@ -279,7 +281,7 @@ int main(void) {
 	gpio_init();
 	gpio_bit_toggle(GPIOC, GPIO_PIN_15);
 
-    //timer2_init(10);
+    timer1_init();
 	gpio_bit_toggle(GPIOC, GPIO_PIN_14);
 
 	ecat_slv_init(&config);
