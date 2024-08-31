@@ -154,37 +154,38 @@ void gpio_init(void) {
     gpio_bit_set(GPIOE, GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6);
 
     rcu_periph_clock_enable(RCU_SYSCFG);
+
     // LAN9252 IRQ pin will have EXTI0
     gpio_mode_set(GPIOC, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_0);
-    nvic_irq_enable(EXTI0_IRQn, 0U, 0U);
     syscfg_exti_line_config(EXTI_SOURCE_GPIOC, EXTI_SOURCE_PIN0);
     exti_init(EXTI_0, EXTI_INTERRUPT, EXTI_TRIG_FALLING);
     exti_interrupt_flag_clear(EXTI_0);
     exti_interrupt_enable(EXTI_0);
+    nvic_irq_enable(EXTI0_IRQn, 0U, 0U);
     // LAN9252 SYNC0 pin will have EXTI3
     gpio_mode_set(GPIOC, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_3);
-    nvic_irq_enable(EXTI3_IRQn, 1U, 1U);
     syscfg_exti_line_config(EXTI_SOURCE_GPIOC, EXTI_SOURCE_PIN3);
     exti_init(EXTI_3, EXTI_INTERRUPT, EXTI_TRIG_FALLING);
     exti_interrupt_flag_clear(EXTI_3);
     exti_interrupt_enable(EXTI_3);
+    nvic_irq_enable(EXTI3_IRQn, 1U, 1U);
     // LAN9252 SYNC1 pin will have EXTI1
     gpio_mode_set(GPIOC, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_1);
-    nvic_irq_enable(EXTI1_IRQn, 1U, 2U);
     syscfg_exti_line_config(EXTI_SOURCE_GPIOC, EXTI_SOURCE_PIN1);
     exti_init(EXTI_1, EXTI_INTERRUPT, EXTI_TRIG_FALLING);
     exti_interrupt_flag_clear(EXTI_1);
     exti_interrupt_enable(EXTI_1);
+    nvic_irq_enable(EXTI1_IRQn, 1U, 2U);
 
     // the encoder will live on portb 6, 8 and 9; 9 and 8 are using timer1
     // and 6 will use an IRQ and needs to be setup here
     gpio_mode_set(GPIOB, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_6 | GPIO_PIN_8 | GPIO_PIN_9);
     // interrupt on 6 for index
-    nvic_irq_enable(EXTI5_9_IRQn, 2U, 0U);
     syscfg_exti_line_config(EXTI_SOURCE_GPIOB, EXTI_SOURCE_PIN6);
     exti_init(EXTI_6, EXTI_INTERRUPT, EXTI_TRIG_RISING);
     exti_interrupt_flag_clear(EXTI_6);
     exti_interrupt_enable(EXTI_6);
+    nvic_irq_enable(EXTI5_9_IRQn, 2U, 0U);
     // setup timer alternate functions for 8 and 9 (ch0 and ch1 on timer1)
     // for encoder
     gpio_af_set(GPIOB, GPIO_AF_1, GPIO_PIN_8 | GPIO_PIN_9);
@@ -210,8 +211,6 @@ void timer1_init(void) {
 
     timer_slave_mode_select(TIMER1, TIMER_ENCODER_MODE2);
 
-    //timer_interrupt_enable(TIMER1, TIMER_INT_UP);
-    //nvic_irq_enable(TIMER1_IRQn, 3, 1);
     timer_enable(TIMER1);
 }
 
@@ -237,6 +236,7 @@ void EXTI3_IRQHandler(void) {
 
 // index Pulse, encoder A pulse, and encoder B pulse
 // all sit on this ISR
+extern "C" {
 void EXTI5_9_IRQHandler(void) {
     // this is to see if we are even hitting the isr and we aren't :()
     for (int i = 0; i < 1000000; ++i) {
@@ -251,6 +251,7 @@ void EXTI5_9_IRQHandler(void) {
         exti_interrupt_flag_clear(EXTI_6);
     }
 }
+}
 
 void watchdog_config(void) {
     fwdgt_config(0x0FFF, FWDGT_PSC_DIV32);
@@ -261,6 +262,7 @@ void watchdog_config(void) {
 }
 
 int main(void) {
+
 	systick_config();
     watchdog_config();
 
