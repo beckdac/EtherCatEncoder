@@ -6,7 +6,7 @@ This code was developed for this board from AliExpress:
 
 This board has 8 LEDs and 8 switches connected to a GD32F407ZG. The GD32F407ZG has SPI and an FSMC bus to a LAN9252 which has the PHY and EEPROM for doing EtherCat.  The GD32F407ZG has to do some configuration oof the LAN9252 over SPI and then the LAN9252 can do some basic responding and the GD32F407ZG can handle inputs and as fast as possible update the LAN9252 state over SPI.  Nothing fancy.  The board is capable of supporting an IRQ and SYNC0 / SYNC1 connections with the GD32F407ZG.  The code in this repo sets up those ISRs, but does not use them.
 
-Switch 3 and switch 4 are encoder inputs to TIMER1.  Switch 5 has a rising edge external interrupt for the rotational index.  The other switches are ignored.  
+Switch 3 and switch 4 are encoder inputs to TIMER1.  Switch 5 has a rising edge external interrupt for the rotational index.  The other switches are ignored.  This selection is largely based on the TIMER1 CH0 and CH1 assignments as well as the IRQ and SYNC0/SYNC1 isr lines that are accomodated but not used.
 
 The LEDs have the following meaning:
 * LED1: on when GPIO has been initialized
