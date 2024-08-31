@@ -158,7 +158,8 @@ void gpio_init(void) {
 	gpio_output_options_set(GPIOC, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
 	gpio_mode_set(GPIOE, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6);
 	gpio_output_options_set(GPIOE, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6);
-
+    gpio_bit_set(GPIOC, GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
+    gpio_bit_set(GPIOE, GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6);
 
     rcu_periph_clock_enable(RCU_SYSCFG);
     // LAN9252 IRQ pin will have EXTI0
@@ -265,22 +266,24 @@ void EXTI5_9_IRQHandler(void) {
 
 void watchdog_config(void) {
     fwdgt_config(0x0FFF, FWDGT_PSC_DIV32);
+    // the above prescale results in a pretty generous timer 
+    // so we can enable here and it won't time out before 
+    // the first reload in the main loop
     fwdgt_enable();
 }
 
 int main(void) {
 	systick_config();
-
     watchdog_config();
 
 	gpio_init();
-	gpio_bit_set(GPIOC, GPIO_PIN_15);
+	gpio_bit_toggle(GPIOC, GPIO_PIN_15);
 
     //timer2_init(10);
-	gpio_bit_set(GPIOC, GPIO_PIN_14);
+	gpio_bit_toggle(GPIOC, GPIO_PIN_14);
 
 	ecat_slv_init(&config);
-    gpio_bit_set(GPIOC, GPIO_PIN_13);
+    gpio_bit_toggle(GPIOC, GPIO_PIN_13);
 
     uint32_t i = 0;
 	while (1) {
