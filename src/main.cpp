@@ -150,18 +150,19 @@ void gpio_init(void) {
 
 	// the switches on the GD32 board
 	//gpio_mode_set(GPIOE, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_0 | GPIO_PIN_1);
+    // 3 of the four below are used for the encoder, see below
 	//gpio_mode_set(GPIOB, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_8 | GPIO_PIN_9);
 	//gpio_mode_set(GPIOG, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_14 | GPIO_PIN_15);
+
 	// the LEDs on the GD32 board
 	gpio_mode_set(GPIOC, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
 	gpio_output_options_set(GPIOC, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
 	gpio_mode_set(GPIOE, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6);
 	gpio_output_options_set(GPIOE, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6);
+    // turn these off
     gpio_bit_set(GPIOC, GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
     gpio_bit_set(GPIOE, GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6);
 
-
-#if 0
     rcu_periph_clock_enable(RCU_SYSCFG);
     // LAN9252 IRQ pin will have EXTI0
     gpio_mode_set(GPIOC, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_0);
@@ -187,17 +188,17 @@ void gpio_init(void) {
 
     // the encoder will live on portb 6, 8 and 9; 9 and 8 are using timer1
     // and 6 will use an IRQ and needs to be setup here
-    gpio_mode_set(GPIOB, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_6 | GPIO_PIN_8 | GPIO_PIN_9);
+//    gpio_mode_set(GPIOB, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_6 | GPIO_PIN_8 | GPIO_PIN_9);
     // interrupt on 6 for index
-    exti_interrupt_flag_clear(EXTI_6);
+    gpio_mode_set(GPIOB, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO_PIN_6);
+//	NVIC_ClearPendingIRQ(EXTI5_9_IRQn);
+//    nvic_irq_enable(EXTI5_9_IRQn, 2U, 0U);
     exti_init(EXTI_6, EXTI_INTERRUPT, EXTI_TRIG_RISING);
+    exti_interrupt_flag_clear(EXTI_6);
     exti_interrupt_enable(EXTI_6);
-	NVIC_ClearPendingIRQ(EXTI5_9_IRQn);
-    nvic_irq_enable(EXTI5_9_IRQn, 2U, 3U);
     // setup timer alternate functions for 8 and 9 (ch0 and ch1 on timer1)
     // for encoder
     gpio_af_set(GPIOB, GPIO_AF_1, GPIO_PIN_8 | GPIO_PIN_9);
-#endif
 }
 
 // the encoder will sit on the pins b8 and b9 which are
