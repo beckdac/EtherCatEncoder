@@ -45,8 +45,6 @@ static esc_cfg_t config = {
 //---- user application ------------------------------------------------------------------------------
 
 void indexPulse(void);
-void encoderAPulse(void);
-void encoderBPulse(void);
 double posScaleRes = 1.0;
 uint32_t curPosScale = 1;
 uint8_t oldLatchCEnable = 0;
@@ -86,14 +84,6 @@ void indexPulse(void) {
         TDelta.clear();
         counterReset = 0;
     }
-}
-
-void encoderAPulse(void){
-
-}
-
-void encoderBPulse(void){
-
 }
 
 void cb_get_inputs() {
@@ -248,10 +238,16 @@ void EXTI3_IRQHandler(void) {
 // index Pulse, encoder A pulse, and encoder B pulse
 // all sit on this ISR
 void EXTI5_9_IRQHandler(void) {
-    gpio_bit_toggle(GPIOE, GPIO_PIN_3);
+    // this is to see if we are even hitting the isr and we aren't :()
+    for (int i = 0; i < 1000000; ++i) {
+        gpio_bit_toggle(GPIOE, GPIO_PIN_3);
+        for (int j = 0; j < 1000000; ++j) {
+            fwdgt_counter_reload();
+        }
+    }
     // Switch 5 (GPIO 6 on Port B) is index
     if (exti_interrupt_flag_get(EXTI_6) != RESET) {
-        encoderBPulse(); 
+        indexPulse(); 
         exti_interrupt_flag_clear(EXTI_6);
     }
 }
